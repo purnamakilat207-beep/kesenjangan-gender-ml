@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Analisis Kesenjangan Gender 2024</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+body{font-family:Arial;margin:0;background:#f4f6f8;color:#202938}
+header{background:#172033;color:white;padding:30px}
+main{max-width:1100px;margin:25px auto;padding:0 15px}
+.card{background:white;padding:20px;border-radius:12px;margin-bottom:20px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+input{padding:10px;width:90%;margin:6px 0 12px}
+button{padding:10px 18px;background:#172033;color:white;border:0;border-radius:7px}
+#hasil{margin-top:15px;font-size:20px;font-weight:bold}
+table{border-collapse:collapse;width:100%}
+th,td{border-bottom:1px solid #ddd;padding:8px;text-align:left}
+@media(max-width:800px){.grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header>
+<h1>Analisis Kesenjangan Gender 2024</h1>
+<p>Pendidikan dan pekerjaan menggunakan Machine Learning</p>
+</header>
+
+<main>
+<div class="card">
+<h2>Alur Sistem</h2>
+<p>Data BPS → Pengolahan Data → Perhitungan Gap → Training Machine Learning → Prediksi → Website</p>
+</div>
+
+<div class="grid">
+<div class="card">
+<h2>Grafik Gap Pekerjaan</h2>
+<canvas id="grafik"></canvas>
+</div>
+
+<div class="card">
+<h2>Prediksi Kategori Gap</h2>
+<p>Masukkan data suatu wilayah:</p>
+
+<label>Gap Pendidikan</label><br>
+<input id="pendidikan" type="number" step="0.01" value="0.5"><br>
+
+<label>Gap TPAK</label><br>
+<input id="tpak" type="number" step="0.01" value="25"><br>
+
+<label>Gap Upah (%)</label><br>
+<input id="upah" type="number" step="0.01" value="15"><br>
+
+<label>RLS Perempuan</label><br>
+<input id="rls" type="number" step="0.01" value="9"><br>
+
+<label>TPAK Perempuan</label><br>
+<input id="tpakperempuan" type="number" step="0.01" value="55"><br>
+
+<button onclick="prediksi()">Prediksi</button>
+<div id="hasil"></div>
+</div>
+</div>
+
+<div class="card">
+<h2>Data Hasil Pengolahan</h2>
+<table>
+<thead><tr><th>Provinsi</th><th>Gap Pendidikan</th><th>Gap TPAK</th><th>Gap Pekerjaan</th><th>Kategori</th></tr></thead>
+<tbody id="tabel"></tbody>
+</table>
+</div>
+</main>
+
+<script>
+async function tampilkanData(){
+    const response = await fetch("/data");
+    const data = await response.json();
+
+    const tabel = document.getElementById("tabel");
+
+    data.forEach(row => {
+        tabel.innerHTML += `
+        <tr>
+            <td>${row.provinsi}</td>
+            <td>${row.gap_pendidikan}</td>
+            <td>${row.gap_tpak}</td>
+            <td>${row.gap_pekerjaan}</td>
+            <td>${row.kategori_gap}</td>
+        </tr>`;
+    });
+
+    const urut = [...data].sort(
+        (a,b) => b.gap_pekerjaan - a.gap_pekerjaan
+    ).slice(0,10);
+
+    new Chart(document.getElementById("grafik"), {
+        type:"bar",
+        data:{
+            labels:urut.map(x => x.provinsi),
+            datasets:[{
+                label:"Gap pekerjaan",
+                data:urut.map(x => x.gap_pekerjaan)
+            }]
+        }
+    });
+}
+
+async function prediksi(){
+    const isi = {
+        gap_pendidikan:document.getElementById("pendidikan").value,
+        gap_tpak:document.getElementById("tpak").value,
+        gap_upah_persen:document.getElementById("upah").value,
+        rls_perempuan:document.getElementById("rls").value,
+        tpak_perempuan:document.getElementById("tpakperempuan").value
+    };
+
+    const response = await fetch("/prediksi", {
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify(isi)
+    });
+
+    const hasil = await response.json();
+
+    document.getElementById("hasil").innerHTML =
+        "Hasil prediksi: " + hasil.hasil;
+}
+
+tampilkanData();
+</script>
+</body>
+</html>
